@@ -63,8 +63,6 @@ SharemindAddSimpleTests("${CMAKE_CURRENT_SOURCE_DIR}/tests/Test*.cpp"
         ${SharemindCxxHeaders_INCLUDE_DIRS}
     LINK_LIBRARIES
         ${SharemindCxxHeaders_LINK_LIBRARIES}
-        "-L${CMAKE_CURRENT_BINARY_DIR}/"
-        "-lsharemind_AccessControlProcessFacility"
     LINK_FLAGS
         "-Wl,-rpath=${CMAKE_CURRENT_BINARY_DIR}/"
 )
