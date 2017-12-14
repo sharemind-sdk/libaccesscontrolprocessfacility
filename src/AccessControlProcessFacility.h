@@ -98,6 +98,8 @@ public: /* Methods: */
 
     virtual ~AccessControlProcessFacility() noexcept {}
 
+    AccessType check() const noexcept { return Unspecified; }
+
     /**
         \brief Checks for access of the given rules.
 
@@ -117,8 +119,12 @@ public: /* Methods: */
      */
     template <typename ... Args>
     auto check(Args && ... args) const noexcept
-            -> SHAREMIND_REQUIRE_CONCEPTS_R(AccessType, ValidArgument(Args)...)
-    { return checkWithPredicates(getPredicate(std::forward<Args>(args))...); }
+            -> typename std::enable_if<
+                    (sizeof...(Args) > 0u) && ((sizeof...(Args) % 2u) == 0u)
+                    && Models<ValidArgument(Args)...>::value,
+                    AccessType
+                >::type
+    { return checkWithPredicates_(getPredicate(std::forward<Args>(args))...); }
 
 protected: /* Methods: */
 
@@ -128,16 +134,8 @@ protected: /* Methods: */
 
 private: /* Methods: */
 
-    AccessType checkWithPredicates() const noexcept
-    { return AccessType::Unspecified; }
-
     template <typename ... Args>
-    auto checkWithPredicates(Args && ... args) const noexcept
-            -> typename std::enable_if<
-                    (sizeof...(Args) > 0u) && ((sizeof...(Args) % 2u) == 0u),
-                    AccessType
-                >::type
-    {
+    AccessType checkWithPredicates_(Args && ... args) const noexcept {
         PreparedPredicate const * const ptrs[] = { std::addressof(args)... };
         return checkWithPredicates(ptrs, sizeof...(Args) / 2u);
     }
