@@ -69,6 +69,8 @@ protected: /* types: */
         virtual bool operator()(std::string const &) const = 0;
 
     };
+    static_assert(Models<PreparedPredicateConcept(PreparedPredicate &)>::value,
+                  "");
 
 private: /* Types: */
 
