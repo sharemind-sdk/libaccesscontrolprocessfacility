@@ -16,26 +16,26 @@ class Facility final: public AccessControlProcessFacility {
 
 private: /* Methods: */
 
-    AccessType checkWithPredicates(
+    AccessResult checkWithPredicates(
             PreparedPredicate const * const * ptrs,
             std::size_t size) const noexcept final override
     {
         if (!size)
-            return AccessType::Unspecified;
+            return AccessResult::Unspecified;
         assert(ptrs);
-        AccessType r = AccessType::Unspecified;
+        auto r = AccessResult::Unspecified;
         try {
             for (;;) {
                 PreparedPredicate const & policyPredicate = **ptrs;
                 PreparedPredicate const & objectPredicate = **++ptrs;
                 if (policyPredicate(m_policy) && objectPredicate(m_object))
-                    r = AccessType::Allowed;
+                    r = AccessResult::Allowed;
                 if (!--size)
                     break;
                 ++ptrs;
             }
         } catch (...) {
-            return AccessType::Denied;
+            return AccessResult::Denied;
         }
         return r;
     }
@@ -46,7 +46,7 @@ private: /* Methods: */
 };
 
 template <typename Policy, typename Object>
-Facility::AccessType test(Policy && policy, Object && object) {
+AccessResult test(Policy && policy, Object && object) {
     return Facility().check(std::forward<Policy>(policy),
                             std::forward<Object>(object));
 }
@@ -67,11 +67,11 @@ struct ThrowingRange {
 } // anonymous namespace
 
 #define TA(...) \
-        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == Facility::AccessType::Allowed)
+        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == AccessResult::Allowed)
 #define TD(...) \
-        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == Facility::AccessType::Denied)
+        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == AccessResult::Denied)
 #define TU(...) \
-    SHAREMIND_TESTASSERT(test(__VA_ARGS__) == Facility::AccessType::Unspecified)
+    SHAREMIND_TESTASSERT(test(__VA_ARGS__) == AccessResult::Unspecified)
 #define LIT(s) asLiteralStringRange(s)
 #define NTCS(s) static_cast<char const *>(s)
 #define STR(s) str_ ## s

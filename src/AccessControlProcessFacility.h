@@ -32,11 +32,15 @@
 
 namespace sharemind {
 
+/** \warning Please never convert this to an unscoped enumeration! Because
+             values of unscoped enumerations may implicitly be converted to any
+             integral type, such are not appropriate for use in access control.
+*/
+enum class AccessResult { Denied, Allowed, Unspecified };
+
 class AccessControlProcessFacility {
 
 public: /* Types: */
-
-    enum AccessType { Denied, Allowed, Unspecified };
 
     using PreparedPredicateConcept = StringHashTablePredicate;
 
@@ -100,7 +104,7 @@ public: /* Methods: */
 
     virtual ~AccessControlProcessFacility() noexcept {}
 
-    AccessType check() const noexcept { return Unspecified; }
+    AccessResult check() const noexcept { return AccessResult::Unspecified; }
 
     /**
         \brief Checks for access of the given rules.
@@ -113,7 +117,7 @@ public: /* Methods: */
         used to match the object (rule).
 
         \warning If comparing a given range with a std::string object using
-                 rangeEqual() throws, AccessType::Denied is returned.
+                 rangeEqual() throws, AccessResult::Denied is returned.
         \warning Character arrays as arguments are considered to be ranges,
                  hence literal strings passed will contain the terminating NULL
                  character. Use sharemind::asLiteralStringRange("literal") as a
@@ -124,20 +128,20 @@ public: /* Methods: */
             -> typename std::enable_if<
                     (sizeof...(Args) > 0u) && ((sizeof...(Args) % 2u) == 0u)
                     && Models<ValidArgument(Args)...>::value,
-                    AccessType
+                    AccessResult
                 >::type
     { return checkWithPredicates_(getPredicate(std::forward<Args>(args))...); }
 
 protected: /* Methods: */
 
-    virtual AccessType checkWithPredicates(
+    virtual AccessResult checkWithPredicates(
             PreparedPredicate const * const * ptrs,
             std::size_t size) const noexcept = 0;
 
 private: /* Methods: */
 
     template <typename ... Args>
-    AccessType checkWithPredicates_(Args && ... args) const noexcept {
+    AccessResult checkWithPredicates_(Args && ... args) const noexcept {
         PreparedPredicate const * const ptrs[] = { std::addressof(args)... };
         return checkWithPredicates(ptrs, sizeof...(Args) / 2u);
     }
