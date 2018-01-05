@@ -19,26 +19,22 @@ private: /* Methods: */
     AccessResult checkWithPredicates(
             PreparedPredicate const & rulesetNamePredicate,
             PreparedPredicate const * const * ptrs,
-            std::size_t size) const noexcept final override
+            std::size_t size) const final override
     {
         if (!size)
             return AccessResult::Unspecified;
         assert(ptrs);
-        try {
-            if (!rulesetNamePredicate(m_policy))
-                return AccessResult::Unspecified;
-            auto r = AccessResult::Unspecified;
-            for (;; ++ptrs) {
-                PreparedPredicate const & objectNamePredicate = **ptrs;
-                if (objectNamePredicate(m_object))
-                    r = AccessResult::Allowed;
-                if (!--size)
-                    break;
-            }
-            return r;
-        } catch (...) {
-            return AccessResult::Denied;
+        if (!rulesetNamePredicate(m_policy))
+            return AccessResult::Unspecified;
+        auto r = AccessResult::Unspecified;
+        for (;; ++ptrs) {
+            PreparedPredicate const & objectNamePredicate = **ptrs;
+            if (objectNamePredicate(m_object))
+                r = AccessResult::Allowed;
+            if (!--size)
+                break;
         }
+        return r;
     }
 
     std::string const m_policy{POLICY};
@@ -46,10 +42,24 @@ private: /* Methods: */
 
 };
 
+enum class TestAccessResult { Allowed, Denied, Unspecified, Exception };
+
 template <typename Policy, typename Object>
-AccessResult test(Policy && policy, Object && object) {
-    return Facility().check(std::forward<Policy>(policy),
-                            std::forward<Object>(object));
+TestAccessResult test(Policy && policy, Object && object) {
+    try {
+        auto const r = Facility().check(std::forward<Policy>(policy),
+                                        std::forward<Object>(object));
+        if (r == AccessResult::Allowed) {
+            return TestAccessResult::Allowed;
+        } else if (r == AccessResult::Denied) {
+            return TestAccessResult::Denied;
+        } else {
+            assert(r == AccessResult::Unspecified);
+            return TestAccessResult::Unspecified;
+        }
+    } catch (...) {
+        return TestAccessResult::Exception;
+    }
 }
 
 #ifdef __clang__
@@ -68,11 +78,11 @@ struct ThrowingRange {
 } // anonymous namespace
 
 #define TA(...) \
-        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == AccessResult::Allowed)
-#define TD(...) \
-        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == AccessResult::Denied)
+        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == TestAccessResult::Allowed)
 #define TU(...) \
-    SHAREMIND_TESTASSERT(test(__VA_ARGS__) == AccessResult::Unspecified)
+    SHAREMIND_TESTASSERT(test(__VA_ARGS__) == TestAccessResult::Unspecified)
+#define TE(...) \
+        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == TestAccessResult::Exception)
 #define LIT(s) asLiteralStringRange(s)
 #define NTCS(s) static_cast<char const *>(s)
 #define STR(s) str_ ## s
@@ -81,27 +91,27 @@ struct ThrowingRange {
 int main() {
     std::string const & str_POLICY(POLICY);
     std::string const & str_OBJECT(OBJECT);
-    TD(THROW, THROW);
-    TD(THROW, OBJECT);
-    TD(THROW, LIT(OBJECT));
-    TD(THROW, NTCS(OBJECT));
-    TD(THROW, STR(OBJECT));
+    TE(THROW, THROW);
+    TE(THROW, OBJECT);
+    TE(THROW, LIT(OBJECT));
+    TE(THROW, NTCS(OBJECT));
+    TE(THROW, STR(OBJECT));
     TU(POLICY, THROW);
     TU(POLICY, OBJECT);
     TU(POLICY, LIT(OBJECT));
     TU(POLICY, NTCS(OBJECT));
     TU(POLICY, STR(OBJECT));
-    TD(LIT(POLICY), THROW);
+    TE(LIT(POLICY), THROW);
     TU(LIT(POLICY), OBJECT);
     TA(LIT(POLICY), LIT(OBJECT));
     TA(LIT(POLICY), NTCS(OBJECT));
     TA(LIT(POLICY), STR(OBJECT));
-    TD(NTCS(POLICY), THROW);
+    TE(NTCS(POLICY), THROW);
     TU(NTCS(POLICY), OBJECT);
     TA(NTCS(POLICY), LIT(OBJECT));
     TA(NTCS(POLICY), NTCS(OBJECT));
     TA(NTCS(POLICY), STR(OBJECT));
-    TD(STR(POLICY), THROW);
+    TE(STR(POLICY), THROW);
     TU(STR(POLICY), OBJECT);
     TA(STR(POLICY), LIT(OBJECT));
     TA(STR(POLICY), NTCS(OBJECT));

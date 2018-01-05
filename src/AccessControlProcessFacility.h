@@ -65,7 +65,7 @@ protected: /* types: */
         PreparedPredicate & operator=(PreparedPredicate const &) noexcept
                 = default;
 
-        virtual std::size_t hash() const noexcept = 0;
+        virtual std::size_t hash() const = 0;
         virtual bool operator()(std::string const &) const = 0;
 
     };
@@ -84,7 +84,7 @@ private: /* Types: */
             : m_pred(std::forward<Args>(args)...)
         {}
 
-        std::size_t hash() const noexcept final override
+        std::size_t hash() const final override
         { return m_pred.hash(); }
 
         virtual bool operator()(std::string const & str) const final override
@@ -100,24 +100,37 @@ public: /* Methods: */
 
     virtual ~AccessControlProcessFacility() noexcept {}
 
+    /**
+      \brief Short-circuit for access checking when no object names are given.
+      \param rulesetNamePredicate not used
+      \returns AccessResult::Unspecified
+    */
     template <typename RulesetNamePredicate>
-    constexpr auto check(RulesetNamePredicate &&) const noexcept
+    constexpr auto check(RulesetNamePredicate && rulesetNamePredicate)
+            const noexcept
             -> SHAREMIND_REQUIRE_CONCEPTS_R(AccessResult,
                                             ValidArgument(RulesetNamePredicate))
-    { return AccessResult::Unspecified; }
+    {
+        (void) rulesetNamePredicate;
+        return AccessResult::Unspecified;
+    }
 
     /**
-        \brief Checks for access of the given rules.
+        \brief Checks for access under a given ruleset and set of objects.
 
-        For each rule to check, the function takes two consecutive parameters,
-        each of which is either models PreparedPredicateConcept, decays to a
-        std::string, is convertible to (char const *) or is a range which can be
-        compared to a std::string using sharemind::rangeEqual(). The first of
-        each of these two is used to match the ruleset name, and the second is
-        used to match the object (rule).
+        \param rulesetNamePredicate A ruleset name predicate (or something
+                                    convertible to it) which is used to match
+                                    the ruleset under which rules are to be
+                                    checked.
+        \param objectNamePredicates Object name predicates (or objects
+                                    convertible to such) which are used to match
+                                    the object names under the given ruleset.
 
-        \warning If comparing a given range with a std::string object using
-                 rangeEqual() throws, AccessResult::Denied is returned.
+        \warning Does not throw exceptions unless exceptions are thrown by the
+                 operations on the passed hash table predicates (or hash table
+                 predicates constructed from the arguments), for example when
+                 comparing a given range with a std::string object using
+                 sharemind::rangeEqual() throws.
         \warning Character arrays as arguments are considered to be ranges,
                  hence literal strings passed will contain the terminating NULL
                  character. Use sharemind::asLiteralStringRange("literal") as a
@@ -125,7 +138,7 @@ public: /* Methods: */
      */
     template <typename RulesetNamePredicate, typename ... ObjectNamePredicates>
     auto check(RulesetNamePredicate && rulesetNamePredicate,
-               ObjectNamePredicates && ... objectNamePredicates) const noexcept
+               ObjectNamePredicates && ... objectNamePredicates) const
             -> SHAREMIND_REQUIRE_CONCEPTS_R(
                     AccessResult,
                     ValidArgument(RulesetNamePredicate),
@@ -144,14 +157,14 @@ protected: /* Methods: */
     virtual AccessResult checkWithPredicates(
             PreparedPredicate const & rulesetNamePredicate,
             PreparedPredicate const * const * objectNamePredicatePointers,
-            std::size_t numObjectNamePredicates) const noexcept = 0;
+            std::size_t numObjectNamePredicates) const = 0;
 
 private: /* Methods: */
 
     template <typename ... ObjectNamePredicates>
     AccessResult checkWithPredicates_(
             PreparedPredicate const & rulesetNamePredicate,
-            ObjectNamePredicates && ... objectNamePredicates) const noexcept
+            ObjectNamePredicates && ... objectNamePredicates) const
     {
         PreparedPredicate const * const ptrs[] =
                 { std::addressof(objectNamePredicates)... };
