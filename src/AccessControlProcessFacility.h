@@ -105,7 +105,7 @@ public: /* Methods: */
     virtual ~AccessControlProcessFacility() noexcept {}
 
     template <typename RulesetNamePredicate>
-    auto check(RulesetNamePredicate &&) const noexcept
+    constexpr auto check(RulesetNamePredicate &&) const noexcept
             -> SHAREMIND_REQUIRE_CONCEPTS_R(AccessResult,
                                             ValidArgument(RulesetNamePredicate))
     { return AccessResult::Unspecified; }
