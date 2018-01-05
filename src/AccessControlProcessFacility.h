@@ -46,13 +46,9 @@ public: /* Types: */
 
     SHAREMIND_DEFINE_CONCEPT(ValidArgument) {
         template <typename T>
-        auto check(T && t) -> SHAREMIND_REQUIRE_CONCEPTS(
-                        Callable(StringHasher const &, T &),
-                        Any(DecaysTo(T, std::string),
-                            ConvertibleTo(typename std::decay<T>::type,
-                                          char const *),
-                            InputRangeTo(T, char))
-                    );
+        auto check(T && t)
+                -> decltype(getOrCreateTemporaryStringHashTablePredicate(
+                                std::forward<T>(t)));
     };
 
 protected: /* types: */
