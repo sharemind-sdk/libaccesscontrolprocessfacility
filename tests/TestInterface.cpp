@@ -17,27 +17,28 @@ class Facility final: public AccessControlProcessFacility {
 private: /* Methods: */
 
     AccessResult checkWithPredicates(
+            PreparedPredicate const & rulesetNamePredicate,
             PreparedPredicate const * const * ptrs,
             std::size_t size) const noexcept final override
     {
         if (!size)
             return AccessResult::Unspecified;
         assert(ptrs);
-        auto r = AccessResult::Unspecified;
         try {
-            for (;;) {
-                PreparedPredicate const & policyPredicate = **ptrs;
-                PreparedPredicate const & objectPredicate = **++ptrs;
-                if (policyPredicate(m_policy) && objectPredicate(m_object))
+            if (!rulesetNamePredicate(m_policy))
+                return AccessResult::Unspecified;
+            auto r = AccessResult::Unspecified;
+            for (;; ++ptrs) {
+                PreparedPredicate const & objectNamePredicate = **ptrs;
+                if (objectNamePredicate(m_object))
                     r = AccessResult::Allowed;
                 if (!--size)
                     break;
-                ++ptrs;
             }
+            return r;
         } catch (...) {
             return AccessResult::Denied;
         }
-        return r;
     }
 
     std::string const m_policy{POLICY};

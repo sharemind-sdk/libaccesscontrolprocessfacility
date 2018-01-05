@@ -104,7 +104,11 @@ public: /* Methods: */
 
     virtual ~AccessControlProcessFacility() noexcept {}
 
-    AccessResult check() const noexcept { return AccessResult::Unspecified; }
+    template <typename RulesetNamePredicate>
+    auto check(RulesetNamePredicate &&) const noexcept
+            -> SHAREMIND_REQUIRE_CONCEPTS_R(AccessResult,
+                                            ValidArgument(RulesetNamePredicate))
+    { return AccessResult::Unspecified; }
 
     /**
         \brief Checks for access of the given rules.
@@ -123,27 +127,41 @@ public: /* Methods: */
                  character. Use sharemind::asLiteralStringRange("literal") as a
                  optimized workaround.
      */
-    template <typename ... Args>
-    auto check(Args && ... args) const noexcept
-            -> typename std::enable_if<
-                    (sizeof...(Args) > 0u) && ((sizeof...(Args) % 2u) == 0u)
-                    && Models<ValidArgument(Args)...>::value,
-                    AccessResult
-                >::type
-    { return checkWithPredicates_(getPredicate(std::forward<Args>(args))...); }
+    template <typename RulesetNamePredicate, typename ... ObjectNamePredicates>
+    auto check(RulesetNamePredicate && rulesetNamePredicate,
+               ObjectNamePredicates && ... objectNamePredicates) const noexcept
+            -> SHAREMIND_REQUIRE_CONCEPTS_R(
+                    AccessResult,
+                    ValidArgument(RulesetNamePredicate),
+                    ValidArgument(ObjectNamePredicates)...
+                )
+    {
+        return checkWithPredicates_(
+                    getPredicate(std::forward<RulesetNamePredicate>(
+                                     rulesetNamePredicate)),
+                    getPredicate(std::forward<ObjectNamePredicates>(
+                                     objectNamePredicates))...);
+    }
 
 protected: /* Methods: */
 
     virtual AccessResult checkWithPredicates(
-            PreparedPredicate const * const * ptrs,
-            std::size_t size) const noexcept = 0;
+            PreparedPredicate const & rulesetNamePredicate,
+            PreparedPredicate const * const * objectNamePredicatePointers,
+            std::size_t numObjectNamePredicates) const noexcept = 0;
 
 private: /* Methods: */
 
-    template <typename ... Args>
-    AccessResult checkWithPredicates_(Args && ... args) const noexcept {
-        PreparedPredicate const * const ptrs[] = { std::addressof(args)... };
-        return checkWithPredicates(ptrs, sizeof...(Args) / 2u);
+    template <typename ... ObjectNamePredicates>
+    AccessResult checkWithPredicates_(
+            PreparedPredicate const & rulesetNamePredicate,
+            ObjectNamePredicates && ... objectNamePredicates) const noexcept
+    {
+        PreparedPredicate const * const ptrs[] =
+                { std::addressof(objectNamePredicates)... };
+        return checkWithPredicates(rulesetNamePredicate,
+                                   ptrs,
+                                   sizeof...(ObjectNamePredicates));
     }
 
     template <typename T,
