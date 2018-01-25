@@ -1,6 +1,7 @@
 #include "../src/AccessControlProcessFacility.h"
 
 #include <cassert>
+#include <sharemind/StringHashTablePredicate.h>
 #include <sharemind/TestAssert.h>
 #include <string>
 
@@ -14,41 +15,57 @@ char const OBJECT[] = "The object";
 
 class Facility final: public AccessControlProcessFacility {
 
-private: /* Methods: */
+protected: /* Methods: */
 
-    AccessResult checkWithPredicates(
-            PreparedPredicate const & rulesetNamePredicate,
-            PreparedPredicate const * const * ptrs,
-            std::size_t size) const final override
+    std::shared_ptr<ObjectPermissions const> getCurrentPermissions(
+            PreparedPredicate const & rulesetNamePredicate) const final override
     {
-        if (!size)
-            return AccessResult::Unspecified;
-        assert(ptrs);
         if (!rulesetNamePredicate(m_policy))
-            return AccessResult::Unspecified;
-        auto r = AccessResult::Unspecified;
-        for (;; ++ptrs) {
-            PreparedPredicate const & objectNamePredicate = **ptrs;
-            if (objectNamePredicate(m_object))
-                r = AccessResult::Allowed;
-            if (!--size)
-                break;
-        }
-        return r;
+            return std::shared_ptr<ObjectPermissions const>();
+        return m_permissions;
     }
 
+private: /* Fields: */
+
     std::string const m_policy{POLICY};
-    std::string const m_object{OBJECT};
+    std::shared_ptr<ObjectPermissions> m_permissions{
+        []() {
+            auto r(std::make_shared<ObjectPermissions>());
+            r->emplace(OBJECT, AccessResult::Allowed);
+            return r;
+        }()};
 
 };
 
 enum class TestAccessResult { Allowed, Denied, Unspecified, Exception };
 
-template <typename Policy, typename Object>
+struct DirectCheck {
+    template <typename ... Args>
+    static AccessResult check(Args && ... args)
+    { return Facility().check(std::forward<Args>(args)...); }
+};
+
+struct IndirectCheck {
+    template <typename RulesetNamePredicate, typename ... Args>
+    static AccessResult check(RulesetNamePredicate && rulesetNamePredicate,
+                              Args && ... args)
+    {
+        if (auto const perms =
+                    Facility().currentPermissions(
+                        std::forward<RulesetNamePredicate>(
+                            rulesetNamePredicate)))
+            return perms->checkAccess(
+                        getOrCreateTemporaryStringHashTablePredicate(
+                            std::forward<Args>(args)...));
+        return AccessResult::Unspecified;
+    }
+};
+
+template <typename Checker, typename Policy, typename Object>
 TestAccessResult test(Policy && policy, Object && object) {
     try {
-        auto const r = Facility().check(std::forward<Policy>(policy),
-                                        std::forward<Object>(object));
+        auto const r = Checker().check(std::forward<Policy>(policy),
+                                       std::forward<Object>(object));
         if (r == AccessResult::Allowed) {
             return TestAccessResult::Allowed;
         } else if (r == AccessResult::Denied) {
@@ -84,12 +101,14 @@ struct ThrowingRange2 {
 
 } // anonymous namespace
 
-#define TA(...) \
-        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == TestAccessResult::Allowed)
-#define TU(...) \
-    SHAREMIND_TESTASSERT(test(__VA_ARGS__) == TestAccessResult::Unspecified)
-#define TE(...) \
-        SHAREMIND_TESTASSERT(test(__VA_ARGS__) == TestAccessResult::Exception)
+#define TEST(type,result,...) \
+    SHAREMIND_TESTASSERT(test<type ## Check>(__VA_ARGS__) \
+                         == TestAccessResult::result)
+#define TESTS(...) TEST(Direct,__VA_ARGS__); TEST(Indirect,__VA_ARGS__)
+
+#define TA(...) TESTS(Allowed, __VA_ARGS__)
+#define TU(...) TESTS(Unspecified, __VA_ARGS__)
+#define TE(...) TESTS(Exception, __VA_ARGS__)
 #define LIT(s) asLiteralStringRange(s)
 #define NTCS(s) static_cast<char const *>(s)
 #define STR(s) str_ ## s

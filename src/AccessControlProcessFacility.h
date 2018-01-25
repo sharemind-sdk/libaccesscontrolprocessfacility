@@ -24,6 +24,7 @@
 #include <memory>
 #include <sharemind/Concepts.h>
 #include <sharemind/Range.h>
+#include <sharemind/SimpleUnorderedStringMap.h>
 #include <sharemind/StringHashTablePredicate.h>
 #include <string>
 #include <type_traits>
@@ -42,7 +43,62 @@ class AccessControlProcessFacility {
 
 public: /* Types: */
 
-    using PreparedPredicateConcept = StringHashTablePredicate;
+    /// Mapping from object names to Allow/Deny:
+    class ObjectPermissions: public SimpleUnorderedStringMap<AccessResult> {
+
+    public: /* Methods: */
+
+        AccessResult checkAccess() const noexcept
+        { return AccessResult::Unspecified; }
+
+        template <typename ... ObjectNamePredicates>
+        auto checkAccess(ObjectNamePredicates && ... objectNamePredicates)
+                const
+                -> SHAREMIND_REQUIRE_CONCEPTS_R(
+                        AccessResult,
+                        StringHashTablePredicate(ObjectNamePredicates &)...
+                    )
+        {
+            if (empty())
+                return AccessResult::Unspecified;
+            return checkAccess_(std::forward<ObjectNamePredicates>(
+                                    objectNamePredicates)...);
+        }
+
+    private: /* Methods: */
+
+        template <typename ObjectNamePredicate>
+        AccessResult checkAccess_(ObjectNamePredicate && objectNamePredicate)
+                const
+        {
+            assert(!empty());
+            auto const it(find(std::forward<ObjectNamePredicate>(
+                                   objectNamePredicate)));
+            return (it != end()) ? it->second : AccessResult::Unspecified;
+        }
+
+        template <typename ObjectNamePredicate, typename ... Args>
+        AccessResult checkAccess_(ObjectNamePredicate && objectNamePredicate,
+                                  Args && ... args) const
+        {
+            assert(!empty());
+            {
+                auto const r(checkAccess_(std::forward<ObjectNamePredicate>(
+                                              objectNamePredicate)));
+                switch (r) {
+                case AccessResult::Denied:
+                    return r;
+                case AccessResult::Unspecified:
+                    return checkAccess_(std::forward<Args>(args)...);
+                case AccessResult::Allowed:
+                    break;
+                }
+            }
+            auto const r(checkAccess_(std::forward<Args>(args)...));
+            return (r == AccessResult::Unspecified) ? AccessResult::Allowed : r;
+        }
+
+    };
 
     SHAREMIND_DEFINE_CONCEPT(ValidArgument) {
         template <typename T>
@@ -69,7 +125,7 @@ protected: /* types: */
         virtual bool operator()(std::string const &) const = 0;
 
     };
-    static_assert(Models<PreparedPredicateConcept(PreparedPredicate &)>::value,
+    static_assert(Models<StringHashTablePredicate(PreparedPredicate &)>::value,
                   "");
 
 private: /* Types: */
@@ -154,33 +210,34 @@ public: /* Methods: */
                     ValidArgument(ObjectNamePredicates)...
                 )
     {
-        return checkWithPredicates_(
+        if (auto const perms =
+                    currentPermissions(
+                        getPredicate(std::forward<RulesetNamePredicate>(
+                                         rulesetNamePredicate))))
+            return perms->checkAccess(
+                        getPredicate(std::forward<ObjectNamePredicates>(
+                                         objectNamePredicates))...);
+        return AccessResult::Unspecified;
+    }
+
+    template <typename RulesetNamePredicate>
+    auto currentPermissions(RulesetNamePredicate && rulesetNamePredicate) const
+            -> SHAREMIND_REQUIRE_CONCEPTS_R(
+                    std::shared_ptr<ObjectPermissions const>,
+                    ValidArgument(RulesetNamePredicate)
+                )
+    {
+        return getCurrentPermissions(
                     getPredicate(std::forward<RulesetNamePredicate>(
-                                     rulesetNamePredicate)),
-                    getPredicate(std::forward<ObjectNamePredicates>(
-                                     objectNamePredicates))...);
+                                     rulesetNamePredicate)));
     }
 
 protected: /* Methods: */
 
-    virtual AccessResult checkWithPredicates(
-            PreparedPredicate const & rulesetNamePredicate,
-            PreparedPredicate const * const * objectNamePredicatePointers,
-            std::size_t numObjectNamePredicates) const = 0;
+    virtual std::shared_ptr<ObjectPermissions const> getCurrentPermissions(
+            PreparedPredicate const & rulesetNamePredicate) const = 0;
 
 private: /* Methods: */
-
-    template <typename ... ObjectNamePredicates>
-    AccessResult checkWithPredicates_(
-            PreparedPredicate const & rulesetNamePredicate,
-            ObjectNamePredicates && ... objectNamePredicates) const
-    {
-        PreparedPredicate const * const ptrs[] =
-                { std::addressof(objectNamePredicates)... };
-        return checkWithPredicates(rulesetNamePredicate,
-                                   ptrs,
-                                   sizeof...(ObjectNamePredicates));
-    }
 
     template <typename T,
               typename Base =
