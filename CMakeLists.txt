@@ -53,7 +53,7 @@ SharemindCreateCMakeFindFiles(
 
 
 # Tests:
-SharemindSetCxx11CompileOptions()
+SharemindSetCxx14CompileOptions()
 SharemindAddSimpleTests("${CMAKE_CURRENT_SOURCE_DIR}/tests/Test*.cpp"
     LEGACY_DEFINITIONS
         ${SharemindCxxHeaders_DEFINITIONS}
