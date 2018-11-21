@@ -156,10 +156,6 @@ public: /* Methods: */
 
     virtual ~AccessControlProcessFacility() noexcept {}
 
-    #if __cplusplus < 201402L
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #endif
     /**
       \brief Short-circuit for access checking when no object names are given.
       \param rulesetNamePredicate not used
@@ -171,14 +167,9 @@ public: /* Methods: */
             -> SHAREMIND_REQUIRE_CONCEPTS_R(AccessResult,
                                             ValidArgument(RulesetNamePredicate))
     {
-        #if __cplusplus >= 201402L
         (void) rulesetNamePredicate;
-        #endif
         return AccessResult::Unspecified;
     }
-    #if __cplusplus < 201402L
-    #pragma GCC diagnostic pop
-    #endif
 
     /**
         \brief Checks for access under a given ruleset and set of objects.
