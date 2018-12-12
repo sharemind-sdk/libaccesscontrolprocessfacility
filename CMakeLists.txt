@@ -53,7 +53,14 @@ SharemindCreateCMakeFindFiles(
 
 
 # Tests:
-SharemindSetCxx11CompileOptions()
+IF("${SharemindCxxHeaders_VERSION}" VERSION_LESS "0.6.0")
+    SharemindSetCxx11CompileOptions()
+ELSEIF("${SharemindCMakeHelpers_VERSION}" VERSION_LESS "1.4")
+    MESSAGE(FATAL_ERROR
+            "Incompatible combination of CMakeHelpers and CxxHeaders versions!")
+ELSE()
+    SharemindSetCxx14CompileOptions()
+ENDIF()
 SharemindAddSimpleTests("${CMAKE_CURRENT_SOURCE_DIR}/tests/Test*.cpp"
     LEGACY_DEFINITIONS
         ${SharemindCxxHeaders_DEFINITIONS}
