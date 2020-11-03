@@ -23,45 +23,41 @@ PROJECT(SharemindLibAccessControlProcessFacility VERSION 0.2.0 LANGUAGES "CXX")
 INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/config.local" OPTIONAL)
 INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/config.local" OPTIONAL)
 
-FIND_PACKAGE(SharemindCMakeHelpers 1.4 REQUIRED)
+FIND_PACKAGE(SharemindCMakeHelpers 1.6 REQUIRED)
+
+FIND_PACKAGE(SharemindCxxHeaders 0.8.0 REQUIRED)
 
 
-FIND_PACKAGE(SharemindCxxHeaders 0.7.0 REQUIRED)
-
+# LibAccessControlProcessFacility:
 FILE(GLOB_RECURSE SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 ADD_CUSTOM_TARGET(
     "include_SharemindLibAccessControlProcessFacility_headers_in_IDE"
     SOURCES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS})
-
+SharemindAddInterfaceLibrary(LibAccessControlProcessFacility)
+TARGET_INCLUDE_DIRECTORIES(LibAccessControlProcessFacility
+    INTERFACE
+        # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> # TODO
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
+    )
+TARGET_LINK_LIBRARIES(LibAccessControlProcessFacility
+        INTERFACE
+            "Sharemind::CxxHeaders"
+    )
 INSTALL(FILES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS}
         DESTINATION "include/sharemind"
         COMPONENT "dev")
-
-
-# Install cmake files:
-SharemindCreateCMakeFindFiles(
-    DEFINITIONS
-        ${SharemindCxxHeaders_DEFINITIONS}
-    INCLUDE_DIRS
-        "${CMAKE_INSTALL_PREFIX}/include"
-        ${SharemindCxxHeaders_INCLUDE_DIRS}
-    LIBRARIES
-        ${SharemindCxxHeaders_LINK_LIBRARIES}
+SharemindCreateCMakeFindFilesForTarget(LibAccessControlProcessFacility
+    DEPENDENCIES
+        "SharemindCxxHeaders 0.8.0"
 )
 
 
 # Tests:
 SharemindSetCxx14CompileOptions()
 SharemindAddSimpleTests("${CMAKE_CURRENT_SOURCE_DIR}/tests/Test*.cpp"
-    LEGACY_DEFINITIONS
-        ${SharemindCxxHeaders_DEFINITIONS}
-    INCLUDE_DIRECTORIES
-        ${SharemindCxxHeaders_INCLUDE_DIRS}
     LINK_LIBRARIES
-        ${SharemindCxxHeaders_LINK_LIBRARIES}
-    LINK_FLAGS
-        "-Wl,-rpath=${CMAKE_CURRENT_BINARY_DIR}/"
+        LibAccessControlProcessFacility
 )
 
 
@@ -73,7 +69,7 @@ SharemindAddComponentPackage("dev"
         "Sharemind Access Control Process Facility API development headers"
     DEB_SECTION "libdevel"
     DEB_DEPENDS
-        "libsharemind-cxxheaders-dev (>= 0.7.0)"
+        "libsharemind-cxxheaders-dev (>= 0.8.0)"
         "libstdc++-dev"
 )
 SharemindPackagingFinalize()
