@@ -41,7 +41,6 @@ INSTALL(FILES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS}
 
 # Install cmake files:
 SharemindCreateCMakeFindFiles(
-    COMPONENT "api-dev"
     DEFINITIONS
         ${SharemindCxxHeaders_DEFINITIONS}
     INCLUDE_DIRS
