@@ -36,7 +36,7 @@ ADD_CUSTOM_TARGET(
 
 INSTALL(FILES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS}
         DESTINATION "include/sharemind"
-        COMPONENT "api-dev")
+        COMPONENT "dev")
 
 
 # Install cmake files:
@@ -68,7 +68,7 @@ SharemindAddSimpleTests("${CMAKE_CURRENT_SOURCE_DIR}/tests/Test*.cpp"
 
 # Packaging:
 SharemindSetupPackaging()
-SharemindAddComponentPackage("api-dev"
+SharemindAddComponentPackage("dev"
     NAME "libsharemind-accesscontrolprocessfacility-api-dev"
     DESCRIPTION
         "Sharemind Access Control Process Facility API development headers"
