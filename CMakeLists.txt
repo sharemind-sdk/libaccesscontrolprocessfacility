@@ -31,10 +31,8 @@ FIND_PACKAGE(SharemindCxxHeaders 0.8.0 REQUIRED)
 # LibAccessControlProcessFacility:
 FILE(GLOB_RECURSE SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-ADD_CUSTOM_TARGET(
-    "include_SharemindLibAccessControlProcessFacility_headers_in_IDE"
-    SOURCES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS})
-SharemindAddInterfaceLibrary(LibAccessControlProcessFacility)
+SharemindAddInterfaceLibrary(LibAccessControlProcessFacility
+    EXPOSE_FILES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS})
 TARGET_INCLUDE_DIRECTORIES(LibAccessControlProcessFacility
     INTERFACE
         # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> # TODO
