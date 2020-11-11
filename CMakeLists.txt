@@ -52,11 +52,13 @@ SharemindCreateCMakeFindFilesForTarget(LibAccessControlProcessFacility
 
 
 # Tests:
-SharemindSetCxx14CompileOptions()
-SharemindAddSimpleTests("${CMAKE_CURRENT_SOURCE_DIR}/tests/Test*.cpp"
-    LINK_LIBRARIES
-        LibAccessControlProcessFacility
-)
+FILE(GLOB LibAccessControlProcessFacility_TESTS
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/Test*.cpp")
+FOREACH(testFile IN LISTS LibAccessControlProcessFacility_TESTS)
+    GET_FILENAME_COMPONENT(testName "${testFile}" NAME_WE)
+    SharemindAddTest("${testName}" SOURCES "${testFile}")
+    TARGET_LINK_LIBRARIES("${testName}" PRIVATE LibAccessControlProcessFacility)
+ENDFOREACH()
 
 
 # Packaging:
