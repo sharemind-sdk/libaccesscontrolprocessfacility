@@ -47,7 +47,7 @@ INSTALL(FILES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS}
         COMPONENT "dev")
 SharemindCreateCMakeFindFilesForTarget(LibAccessControlProcessFacility
     DEPENDENCIES
-        "SharemindCxxHeaders 0.8.0"
+        "SharemindCxxHeaders 0.9.0"
 )
 
 
@@ -69,7 +69,7 @@ SharemindAddComponentPackage("dev"
         "Sharemind Access Control Process Facility API development headers"
     DEB_SECTION "libdevel"
     DEB_DEPENDS
-        "libsharemind-cxxheaders-dev (>= 0.8.0)"
+        "libsharemind-cxxheaders-dev (>= 0.9.0)"
         "libstdc++-dev"
 )
 SharemindPackagingFinalize()
