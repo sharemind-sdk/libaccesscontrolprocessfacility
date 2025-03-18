@@ -25,7 +25,7 @@ INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/config.local" OPTIONAL)
 
 FIND_PACKAGE(SharemindCMakeHelpers 1.6 REQUIRED)
 
-FIND_PACKAGE(SharemindCxxHeaders 0.9.0 REQUIRED)
+FIND_PACKAGE(SharemindCxxHeaders 0.10.1 REQUIRED)
 
 
 # LibAccessControlProcessFacility:
@@ -47,7 +47,7 @@ INSTALL(FILES ${SHAREMIND_LIBACCESSCONTROLPROCESSFACILITY_HEADERS}
         COMPONENT "dev")
 SharemindCreateCMakeFindFilesForTarget(LibAccessControlProcessFacility
     DEPENDENCIES
-        "SharemindCxxHeaders 0.9.0"
+        "SharemindCxxHeaders 0.10.1"
 )
 
 
@@ -69,7 +69,7 @@ SharemindAddComponentPackage("dev"
         "Sharemind Access Control Process Facility API development headers"
     DEB_SECTION "libdevel"
     DEB_DEPENDS
-        "libsharemind-cxxheaders-dev (>= 0.9.0)"
+        "libsharemind-cxxheaders-dev (>= 0.10.1)"
         "libstdc++-dev"
 )
 SharemindPackagingFinalize()
